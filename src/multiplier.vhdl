@@ -1,15 +1,14 @@
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
-
-entity multiplier is
-	generic(N,M: Integer);
-	port(a,b: in bit_vector(N+M-1 downto 0);
-		 c: out bit_vector(N+M-1 downto 0));
+entity BOOTH_MULTIPLIER is
+    port(A,B:IN bit_vector(3 downto 0);
+         P: OUT bit_vector(7 downto 0);
+         START,CLOCK: IN bit;
+         READY: OUT bit);
 end entity;
 
-architecture multiplier_arch of multiplier is
-	component PP_REGISTER is
+architecture BOOTH_MULTIPLIER_arch of BOOTH_MULTIPLIER is
+    type state is(Initial,Multiply,Done);
+
+    component PP_REGISTER is
 	    generic(BIT_COUNT : integer);
 	    port(IN_PORT : in bit_vector(BIT_COUNT - 1 downto 0);
 	        OUT_PORT : out bit_vector(BIT_COUNT - 1 downto 0);
@@ -17,64 +16,87 @@ architecture multiplier_arch of multiplier is
 	        RESET : in bit;
 	        LOAD_ENABLE : in bit);
 	end component;
-	component adder
-		port(a,b:in bit_vector(7 downto 0);
-			 sum:out bit_vector(7 downto 0));
-	end component;
-	signal ac_in,ac_out,q_in,q_out,br_in,br_out,br_bar_in,br_bar_out : bit_vector(N+M-1 downto 0);
-	signal rst,clk,ac_le,q_le,br_le,br_bar_le:bit;
-	signal one: bit_vector(7 downto 0):= (others => '0');
-	signal nbr: bit_vector(N+M-1 downto 0);
-	signal addend,sum: bit_vector(N+M-1 downto 0):= (others => '0');
+    component BOOTH_ADDER is
+        generic(N:Integer);
+		port(A,B: IN bit_vector(N-1 downto 0);
+	         S: OUT bit_vector(N-1 downto 0);
+	         S0: OUT bit;
+	         OPCODE: IN bit_vector(1 downto 0));
+    end component;
+    component COUNTER is
+		port(CLOCK,CLEAR:IN bit;
+	         COUNT: OUT bit_vector(1 downto 0));
+    end component;
+
+    signal present_state: state := Initial;
+    signal next_state: state := Initial;
+    signal lsb : bit;
+    signal Opcode: bit_vector(1 downto 0);
+    signal q1: bit := '0';
+    signal step: bit_vector(1 downto 0);
+    signal reset: bit := '0';
+    signal clear: bit := '1';
+    signal ashr : bit_vector(3 downto 0);
+    signal ac_in,ac_out,q_in,q_out,br_in,br_out : bit_vector(3 downto 0):= (others => '0');
+
 begin
-	clk <= not clk after 50 ns;
-	one(0) <= '1';
-	nbr <= not b;
-	AC: PP_REGISTER
-		generic map(N+M)
-		port map(ac_in,ac_out,clk,rst,ac_le);
+
+    AC: PP_REGISTER
+		generic map(4)
+		port map(ac_in,ac_out,CLOCK,reset,'1');
 	Q: PP_REGISTER
-		generic map(N+M)
-		port map(q_in,q_out,clk,rst,q_le);
+		generic map(4)
+		port map(q_in,q_out,CLOCK,reset,'1');
 	BR: PP_REGISTER
-		generic map(N+M)
-		port map(br_in,br_out,clk,rst,br_le);
-	BR_BAR: PP_REGISTER
-		generic map(N+M)
-		port map(br_bar_in,br_bar_out,clk,rst,br_bar_le);
-	ADD1: adder port map(nbr,one,br_bar_in);
-	ADD2: adder port map(ac_out,addend,sum);
+		generic map(4)
+		port map(br_in,br_out,CLOCK,reset,'1');
 
-	process(a,b)
-	variable q1: bit;
-	begin
-		rst <= '1';
-		q_le <= '1';
-		q_in <= a;
-		br_le <= '1';
-		br_in <= b;
-		br_bar_le <= '1';
-		q1 :='0';
+    AddAndShift: BOOTH_ADDER
+                 generic map(4)
+                 port map (ac_out,br_out,ashr,lsb,Opcode);
+    INDEX: COUNTER
+         port map(CLOCK,clear,step);
 
-		for i in N+M-1 downto 0 loop
-			if( q_out(0) = '1' ) and ( q1 = '0' ) then 
-				addend <= br_bar_out;
-			elsif( q_out(0) = '0' ) and ( q1 = '1' ) then 
-				addend <= br_out;
-			end if;
-			ac_in <= sum;
-			ac_le <= '1';
-			q1 := q_out(0);
-			q_in(N+M-2 downto 0) <= q_out(N+M-1 downto 1);
-			q_in(N+M-1) <= ac_out(0);
-			ac_in(N+M-2 downto 0) <= ac_out(N+M-1 downto 1);
-			q_le <= '1';
-			q_le <= '0';
-			ac_le <= '0';
-		end loop;
+    process(CLOCK)
+    begin
+        if(CLOCK'event and CLOCK='1')then
+            present_state <= next_state;
+        end if;
+    end process;
 
-		c(N+M-1 downto M) <= ac_out(M-1 downto 0);
-		c(M-1 downto 0) <= q_out(N+M-1 downto M);
-	end process;
+    process(present_state,CLOCK)
+    begin
+        case present_state is
+
+        WHEN Initial =>
+            READY <= '0';
+            ac_in <="0000";
+            br_in <= B;
+            q_in  <= A;
+
+            if(START='1')then
+                next_state <= Multiply;
+            end if;
+
+        WHEN Multiply =>
+            clear <= '0';
+            Opcode(0) <= q1;
+            Opcode(1) <= q_out(0);
+            ac_in <= ashr;
+            q_in(2 downto 0) <= q_out(3 downto 1);
+            q_in(3) <=lsb;
+            q1 <= Opcode(1);
+            if(step="11")then
+                next_state <= Done;
+            end if;
+
+        WHEN Done =>
+            READY <= '1';
+
+        end case;
+    end process;
+
+    P(7 downto 4) <= ac_out;
+    P(3 downto 0) <= q_out;
+
 end architecture;
-

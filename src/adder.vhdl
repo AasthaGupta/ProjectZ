@@ -1,17 +1,17 @@
-entity adder is
-	port(a,b:in bit_vector(7 downto 0);
-		 sum:out bit_vector(7 downto 0));
+entity ADDER is
+	generic(BIT_COUNT:integer);
+	port(A,B:in bit_vector(BIT_COUNT-1 downto 0);
+		 SUM:out bit_vector(BIT_COUNT-1 downto 0));
 end entity;
 
-architecture adder_arch of adder is
-signal carry:bit_vector(8 downto 0) := (others => '0');
+architecture ADDER_arch of ADDER is
+	component FULL_ADDER is
+		port(A,B,CARRY_IN:in bit;
+	         S,CARRY_OUT:out bit);
+	end component;
+	signal carry:bit_vector(BIT_COUNT downto 0) := (others => '0');
 begin
-	process(a,b)
-	begin
-		for i in 0 to 7 loop
-			sum(i) <= a(i) xor b(i) xor carry(i);
-			carry(i+1) <= (a(i) and b(i)) or (b(i) and carry(i)) or (carry(i) and a(i));
-		end loop;
-	end process;
+	GEN: for index in 0 to BIT_COUNT-1 generate
+		inst: FULL_ADDER port map(A(index), B(index), carry(index), SUM(index), carry(index+1));
+	end generate;
 end architecture;
-
