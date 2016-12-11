@@ -1,10 +1,13 @@
 entity FULL_ADDER is
-    port(A,B,CARRY_IN:in bit;
-         S,CARRY_OUT:out bit);
+    port(A : in bit;
+    	B : in bit;
+    	Cin : in bit;
+    	Cout : out bit;
+        S : out bit);
 end entity;
 
 architecture FULL_ADDER_arch of FULL_ADDER is
 begin
-    S <= A xor B xor CARRY_IN;
-    CARRY_OUT <= (A and B) or (B and CARRY_IN) or (CARRY_IN and A);
+    S <= A xor B xor Cin;
+    Cout <= (A and B) or (B and Cin) or (Cin and A);
 end architecture;

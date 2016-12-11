@@ -11,9 +11,6 @@ begin
     begin
         if CLOCK'event and CLOCK = '1' then
             Q <= D;
-            if RESET = '1' then
-                Q <= '0';
-            end if;
         end if;
     end process;
 end architecture;
