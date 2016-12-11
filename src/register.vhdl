@@ -1,4 +1,3 @@
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
@@ -24,11 +23,10 @@ begin
     GEN: for index in BIT_COUNT - 1 downto 0 generate
         inst: D_FF port map(DATA_PORT(index), RESET, CLOCK, OUT_PORT(index));
     end generate;
-    process(CLOCK)
+    process(LOAD_ENABLE)
     begin
         if LOAD_ENABLE = '1' then
-                DATA_PORT <= IN_PORT;
-    
+            DATA_PORT <= IN_PORT;
         end if;
     end process;
 end architecture;
