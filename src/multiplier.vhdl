@@ -1,6 +1,6 @@
 entity BOOTH_MULTIPLIER is
-    port(A,B : IN bit_vector(3 downto 0);
-         P : OUT bit_vector(7 downto 0);
+    port(A,B : IN bit_vector(39 downto 0);
+         P : OUT bit_vector(39 downto 0);
          START,CLOCK : IN bit;
          READY : OUT bit);
 end entity;
@@ -27,45 +27,42 @@ architecture BOOTH_MULTIPLIER_arch of BOOTH_MULTIPLIER is
 
     signal present_state : state := Initial;
     signal next_state : state := Initial;
-    signal lsb : bit;
     signal Opcode : bit_vector(1 downto 0);
-    signal q1 : bit := '0';
     signal reset : bit := '0';
     signal inc : bit := '0';
-    signal ashr : bit_vector(3 downto 0);
-    signal ac_in , ac_out , q_in , q_out , br_in , br_out : bit_vector(3 downto 0) := (others => '0');
-    signal counter_in : bit_vector(2 downto 0);
-    signal counter_out : bit_vector(2 downto 0);
-    signal reg_clk : bit := '0';
+    signal ac_in , ac_out , q_in , q_out , br_in , br_out : bit_vector(39 downto 0) := (others => '0');
+    signal counter_in : bit_vector(39 downto 0);
+    signal counter_out : bit_vector(39 downto 0);
+    signal register_clock : bit := '0';
 
-    signal B_bar: bit_vector(3 downto 0);
-    signal add_b,sub_b: bit_vector(3 downto 0);
-    signal one: bit_vector(3 downto 0) := (others => '0');
-    signal zero: bit_vector(3 downto 0) := (others => '0');
+    signal B_bar: bit_vector(39 downto 0);
+    signal add_b,sub_b: bit_vector(39 downto 0);
+
 
 begin
 
     B_bar <= not B;
     SUB: ADDER
-	 	generic map(4)
-		port map(ac_out,b_bar,'1',sub_b);
+	 	generic map(40)
+		port map(ac_out,B_bar,'1',sub_b);
     ADD: ADDER
-	 	generic map(4)
+	 	generic map(40)
 		port map(ac_out,B,'0',add_b);
 
-    reg_clk <= not reg_clk after 5 ns;
+    --#IMPORTANT: register_clock must be atleast twice as fast
+    register_clock <= not register_clock after 3 ns;
     AC : PP_REGISTER
-		generic map (4)
-		port map (ac_in,ac_out,'0',reg_clk,reset,'1');
+		generic map (40)
+		port map (ac_in,ac_out,'0',register_clock,reset,'1');
 	Q : PP_REGISTER
-		generic map (4)
-		port map (q_in,q_out,'0',reg_clk,reset,'1');
+		generic map (40)
+		port map (q_in,q_out,'0',register_clock,reset,'1');
 	BR : PP_REGISTER
-		generic map (4)
-		port map (br_in,br_out,'0',reg_clk,reset,'1');
+		generic map (40)
+		port map (br_in,br_out,'0',register_clock,reset,'1');
     COUNTER : PP_REGISTER
-        generic map (3)
-        port map (counter_in,counter_out,inc,reg_clk,reset,'1');
+        generic map (40)
+        port map (counter_in,counter_out,inc,CLOCK,reset,'0');
 
 
     process(CLOCK)
@@ -78,7 +75,7 @@ begin
 
             WHEN Initial =>
                 READY <= '0';
-                ac_in <="0000";
+                ac_in <= (others => '0');
                 br_in <= B;
                 q_in  <= A;
                 counter_in <= (others => '0');
@@ -87,37 +84,43 @@ begin
                 end if;
 
             WHEN OpcodeGen =>
+
                 Opcode(0) <= Opcode(1);
                 Opcode(1) <= q_out(0);
+
                 next_state <= Logic;
+                inc <= '0';
 
             WHEN Logic=>
-                inc <= '1';
+
                 --Logic
                 case Opcode is
                 WHEN "01" =>
-                    ashr <= add_b;
+                    ac_in <= add_b;
                 WHEN "10" =>
-                    ashr <= sub_b;
+                    ac_in <= sub_b;
                 WHEN others =>
-                    ashr <= ac_out;
+                    ac_in <= ac_out;
                 end case;
-                next_state <= Shift;
 
+                next_state <= Shift;
+                inc <= '0';
 
             WHEN Shift =>
                 --Shifting
-                ac_in(3) <= ashr(3);
-                ac_in(2 downto 0) <= ashr(3 downto 1);
-                q_in(3) <= ashr(0);
-                q_in(2 downto 0) <= q_out(3 downto 1);
-                q1 <= q_out(0);
-                if(counter_out="011")then
+                ac_in(38 downto 0) <= ac_out(39 downto 1);
+                q_in(39) <= ac_out(0);
+                q_in(38 downto 0) <= q_out(39 downto 1);
+                -- x -- x --
+
+                --0b100111=39
+                if(counter_out(5 downto 0)="100111")then
                     next_state <= Done;
                 else
                     next_state <= OpcodeGen;
                 end if;
-                counter_in <= counter_out;
+                inc <= '1';
+
 
             WHEN Done =>
                 READY <= '1';
@@ -128,7 +131,7 @@ begin
 
     end process;
 
-    P(7 downto 4) <= ac_out;
-    P(3 downto 0) <= q_out;
+    P(39 downto 8) <= ac_out(31 downto 0);
+    P(7 downto 0) <= q_out( 39 downto 32);
 
 end architecture;
