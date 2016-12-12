@@ -6,18 +6,21 @@ entity BOOTH_ADDER is
          OPCODE: IN bit_vector(1 downto 0));
 end entity;
 architecture BOOTH_ADDER_arch of BOOTH_ADDER is
-    component ADDER
-		generic(BIT_COUNT:integer);
-		port(A,B:in bit_vector(BIT_COUNT-1 downto 0);
-			 SUM:out bit_vector(BIT_COUNT-1 downto 0));
+
+    component ADDER is
+    generic(BIT_COUNT : integer);
+    port(Adder : in bit_vector(BIT_COUNT - 1 downto 0);
+        Addend : in bit_vector(BIT_COUNT - 1 downto 0);
+        RESULT : out bit_vector(BIT_COUNT - 1 downto 0));
 	end component;
+
     signal nb: bit_vector(N-1 downto 0);
     signal b_bar: bit_vector(N-1 downto 0);
     signal b_in: bit_vector(N-1 downto 0);
     signal sum: bit_vector(N-1 downto 0);
     signal one: bit_vector(N-1 downto 0) := (others => '0');
     signal zero: bit_vector(N-1 downto 0) := (others => '0');
-    
+
 begin
 
     b_bar <= not B;
