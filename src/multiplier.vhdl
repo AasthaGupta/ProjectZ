@@ -124,14 +124,14 @@ begin
 
             WHEN Done =>
                 READY <= '1';
+                next_state <= Initial;
+                P(39 downto 8) <= ac_out(31 downto 0);
+                P(7 downto 0) <= q_out( 39 downto 32);
 
             end case;
 
         end if;
 
     end process;
-
-    P(39 downto 8) <= ac_out(31 downto 0);
-    P(7 downto 0) <= q_out( 39 downto 32);
 
 end architecture;
