@@ -62,17 +62,21 @@ begin
         port map (counter_in,counter_out,inc,CLOCK,reset,'0');
 
 
-    process(CLOCK)
+    process(CLOCK, START)
     begin
 
             present_state <= next_state;
+
+            if (START'event) then
+                READY <= '0';
+                next_state <= Initial;
+            end if;
 
             if(CLOCK'event and CLOCK='1')then
             inc <= '0';
             case present_state is
 
             WHEN Initial =>
-                READY <= '0';
                 reset <= '1';
                 ac_in <= (others => '0');
                 Opcode <= (others => '0');
