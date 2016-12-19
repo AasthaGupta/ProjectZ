@@ -30,7 +30,7 @@ architecture BOOTH_MULTIPLIER_arch of BOOTH_MULTIPLIER is
     signal Opcode : bit_vector(1 downto 0);
     signal reset : bit := '0';
     signal inc : bit := '0';
-    signal ac_in , ac_out , q_in , q_out , br_in , br_out : bit_vector(39 downto 0) := (others => '0');
+    signal ac_in , ac_out , q_in , q_out : bit_vector(39 downto 0) := (others => '0');
     signal counter_in : bit_vector(39 downto 0);
     signal counter_out : bit_vector(39 downto 0);
     signal register_clock : bit := '0';
@@ -57,9 +57,6 @@ begin
 	Q : PP_REGISTER
 		generic map (40)
 		port map (q_in,q_out,'0',register_clock,reset,'1');
-	BR : PP_REGISTER
-		generic map (40)
-		port map (br_in,br_out,'0',register_clock,reset,'1');
     COUNTER : PP_REGISTER
         generic map (40)
         port map (counter_in,counter_out,inc,CLOCK,reset,'0');
@@ -71,28 +68,27 @@ begin
             present_state <= next_state;
 
             if(CLOCK'event and CLOCK='1')then
+            inc <= '0';
             case present_state is
 
             WHEN Initial =>
                 READY <= '0';
+                reset <= '1';
                 ac_in <= (others => '0');
-                br_in <= B;
+                Opcode <= (others => '0');
                 q_in  <= A;
-                counter_in <= (others => '0');
                 if(START='1')then
                     next_state <= OpcodeGen;
                 end if;
 
             WHEN OpcodeGen =>
-
                 Opcode(0) <= Opcode(1);
                 Opcode(1) <= q_out(0);
 
                 next_state <= Logic;
-                inc <= '0';
 
             WHEN Logic=>
-
+                reset <= '0';
                 --Logic
                 case Opcode is
                 WHEN "01" =>
@@ -104,7 +100,6 @@ begin
                 end case;
 
                 next_state <= Shift;
-                inc <= '0';
 
             WHEN Shift =>
                 --Shifting
@@ -127,7 +122,6 @@ begin
                 next_state <= Initial;
                 P(39 downto 8) <= ac_out(31 downto 0);
                 P(7 downto 0) <= q_out( 39 downto 32);
-
             end case;
 
         end if;
