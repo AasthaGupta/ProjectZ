@@ -9,6 +9,9 @@ architecture D_FF_arch of D_FF is
 begin
     process(CLOCK)
     begin
+        if RESET = '1' then
+            Q <= '0';
+        end if;
         if CLOCK'event and CLOCK = '1' then
             Q <= D;
         end if;
