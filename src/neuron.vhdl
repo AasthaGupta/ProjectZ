@@ -9,7 +9,7 @@ entity neuron is
 end entity;
 
 architecture neuron_arch of neuron is
-    type state is (s0, s1, s2, s3, s4, s5, s6, s7, s8, s9);
+    type state is (s0, s1, s2, s3, s4, s5, s6, s7, s8);
     component BOOTH_MULTIPLIER is
         port(A,B : IN bit_vector(39 downto 0);
              P : OUT bit_vector(39 downto 0);
@@ -36,8 +36,9 @@ architecture neuron_arch of neuron is
             LOAD_ENABLE : in bit);
     end component;
 
-signal internal_state : state := s0;
-signal mul_ready, mul_start : bit := '0';
+signal counter_out, counter_in : bit_vector(3 downto 0) := (others => '0');
+signal internal_state : state;
+signal mul_ready, mul_start, counter_inc, counter_rst : bit := '0';
 signal mul_in_a, mul_in_b, mul_out, add_in_a, add_in_b, add_out : bit_vector(39 downto 0) := (others => '0');
 
 signal weights : neuron_in := ("0000000000010011001011111101101110001111",  -- 0.074949
@@ -58,78 +59,77 @@ begin
           generic map(40)
           port map(add_in_a, add_in_b, '0', add_out);
 
+    CNT : PP_REGISTER
+          generic map (4)
+          port map(counter_in, counter_out, counter_inc, CLOCK, counter_rst, '0');
+
     process(CLOCK)
 
     begin
 
         if CLOCK'event and CLOCK = '1' then
+            counter_rst <= '0';
+            counter_inc <= '0';
 
             if START = '1' and mul_start = '0' then
 
-                case internal_state is
+                case counter_out is
 
-                    when s0 =>
+                    when "0000" =>
                         mul_in_a <= DATA_IN(0);
                         mul_in_b <= weights(0);
                         mul_start <= '1';
-                        internal_state <= s1;
 
-                    when s1 =>
+                    when "0001" =>
                         mul_in_a <= DATA_IN(1);
                         mul_in_b <= weights(1);
                         mul_start <= '1';
-                        internal_state <= s2;
 
-                    when s2 =>
+                    when "0010" =>
                         mul_in_a <= DATA_IN(2);
                         mul_in_b <= weights(2);
                         mul_start <= '1';
-                        internal_state <= s3;
 
-                    when s3 =>
+                    when "0011" =>
                         mul_in_a <= DATA_IN(3);
                         mul_in_b <= weights(3);
                         mul_start <= '1';
-                        internal_state <= s4;
 
-                    when s4 =>
+                    when "0100" =>
                         mul_in_a <= DATA_IN(4);
                         mul_in_b <= weights(4);
                         mul_start <= '1';
-                        internal_state <= s5;
 
-                    when s5 =>
+                    when "0101" =>
                         mul_in_a <= DATA_IN(5);
                         mul_in_b <= weights(5);
                         mul_start <= '1';
-                        internal_state <= s6;
 
-                    when s6 =>
+                    when "0110" =>
                         mul_in_a <= DATA_IN(6);
                         mul_in_b <= weights(6);
                         mul_start <= '1';
-                        internal_state <= s7;
 
-                    when s7 =>
+                    when "0111" =>
                         mul_in_a <= DATA_IN(7);
                         mul_in_b <= weights(7);
                         mul_start <= '1';
-                        internal_state <= s8;
 
-                    when s8 =>
+                    when "1000" =>
                         mul_in_a <= DATA_IN(8);
                         mul_in_b <= weights(8);
                         mul_start <= '1';
-                        internal_state <= s9;
 
-                    when s9 =>
+                    when others =>
                         DATA_OUT <= add_out;
                         READY <= '1';
+                        counter_rst <= '1';
                         add_in_a <= (others => '0');
                         add_in_b <= (others => '0');
-                        internal_state <= s0;
 
                 end case;
+
+                counter_inc <= '1';
 
             elsif START = '1' and mul_ready = '1' then
 
