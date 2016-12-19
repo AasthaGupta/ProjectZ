@@ -30,13 +30,9 @@ begin
         variable Sum : bit;
     begin
 
-        if RESET = '1' then
-            DATA_PORT <= (others => '0');
-        end if;
-
         if CLOCK'event and CLOCK = '1' then
 
-		    if LOAD_ENABLE = '1' then
+            if LOAD_ENABLE = '1' then
                 DATA_PORT <= IN_PORT;
             end if;
 
@@ -49,6 +45,10 @@ begin
                 end loop;
             end if;
 
+        end if;
+
+        if RESET = '1' then
+            DATA_PORT <= (others => '0');
         end if;
 
     end process;

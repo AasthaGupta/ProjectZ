@@ -9,7 +9,6 @@ entity neuron is
 end entity;
 
 architecture neuron_arch of neuron is
-    type state is (s0, s1, s2, s3, s4, s5, s6, s7, s8);
     component BOOTH_MULTIPLIER is
         port(A,B : IN bit_vector(39 downto 0);
              P : OUT bit_vector(39 downto 0);
@@ -37,7 +36,6 @@ architecture neuron_arch of neuron is
     end component;
 
 signal counter_out, counter_in : bit_vector(3 downto 0) := (others => '0');
-signal internal_state : state;
 signal mul_ready, mul_start, counter_inc, counter_rst : bit := '0';
 signal mul_in_a, mul_in_b, mul_out, add_in_a, add_in_b, add_out : bit_vector(39 downto 0) := (others => '0');
 
@@ -68,8 +66,8 @@ begin
     begin
 
         if CLOCK'event and CLOCK = '1' then
-            counter_rst <= '0';
             counter_inc <= '0';
+            counter_rst <= '0';
 
             if START = '1' and mul_start = '0' then
 
@@ -79,6 +77,7 @@ begin
                         mul_in_a <= DATA_IN(0);
                         mul_in_b <= weights(0);
                         mul_start <= '1';
+                        READY <= '0';
 
                     when "0001" =>
                         mul_in_a <= DATA_IN(1);
