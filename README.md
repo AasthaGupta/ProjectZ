@@ -1,8 +1,21 @@
 # ProjectZ
 Attempt to implement MultiLayer Perceptron in hardware descriptive language like VHDL.
-Maybe it will work or maybe not.Who knows?
+![MLP](https://upload.wikimedia.org/wikipedia/commons/6/60/ArtificialNeuronModel_english.png)
 
-Reasons for creating it using VHDL:
--efficiency
--cost(because making things cheaper means kahi bhi use karo isse ab :P)
--aur kuch aaya reason toh add karungi.tab tak ke liye bus lag rhi hain.
+### Reason for hardware level implementation
+- Increases Efficiency
+- High level of parallelism and piplining 
+- Implementation cost is low
+
+### Idea
+![Implementation Idea](http://i.imgur.com/HFaVwVg.png)
+- **Inputs**: n-parallel signal cables
+- **Output**: m-parallel signal cables
+- **SRAM**: To store weights
+- **Multiplier/Adder**: To evaluate weighted sum
+- **Buffer**: Because multiplication would be parallel, but for adding weighted sums we need to maintain previous sum every time which works likes a left-over sum or carry sum for next calculation.
+- **Activation Function**: MLP Activation Function.
+
+### License
+- Aastha Gupta
+- Aman Priyadarshi
